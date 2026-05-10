@@ -1,4 +1,5 @@
 import prisma from "../utils/prisma.js";
+import { createActivityLog } from "./activityLogService.js";
 
 const safeUserSelect = {
   id: true,
@@ -122,7 +123,7 @@ export const createTask = async (userId, taskData) => {
   await ensureProjectExists(taskData.projectId);
   await ensureUserExists(taskData.assignedToId);
 
-  return prisma.task.create({
+  const task = await prisma.task.create({
     data: {
       projectId: taskData.projectId,
       assignedToId: taskData.assignedToId || null,
@@ -135,6 +136,16 @@ export const createTask = async (userId, taskData) => {
     },
     include: taskInclude
   });
+
+  await createActivityLog({
+    userId,
+    projectId: task.projectId,
+    taskId: task.id,
+    action: "TASK_CREATED",
+    description: `Task ${task.title} was created.`
+  });
+
+  return task;
 };
 
 export const getTasks = async (user) => {
@@ -230,17 +241,35 @@ export const updateTask = async (taskId, user, taskData) => {
     data.completedAt = parseDate(taskData.completedAt);
   }
 
-  return prisma.task.update({
+  const task = await prisma.task.update({
     where: {
       id: taskId
     },
     data,
     include: taskInclude
   });
+
+  await createActivityLog({
+    userId: user.id,
+    projectId: task.projectId,
+    taskId: task.id,
+    action: "TASK_UPDATED",
+    description: `Task ${task.title} was updated.`
+  });
+
+  return task;
 };
 
-export const deleteTask = async (taskId) => {
-  await findTaskById(taskId);
+export const deleteTask = async (taskId, userId = null) => {
+  const task = await findTaskById(taskId);
+
+  await createActivityLog({
+    userId,
+    projectId: task.projectId,
+    taskId: task.id,
+    action: "TASK_DELETED",
+    description: `Task ${task.title} was deleted.`
+  });
 
   return prisma.task.delete({
     where: {

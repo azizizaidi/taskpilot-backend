@@ -1,4 +1,5 @@
 import prisma from "../utils/prisma.js";
+import { createActivityLog } from "./activityLogService.js";
 
 const projectInclude = {
   owner: {
@@ -50,7 +51,7 @@ const parseDate = (value) => {
 };
 
 export const createProject = async (userId, projectData) => {
-  return prisma.project.create({
+  const project = await prisma.project.create({
     data: {
       title: projectData.title,
       description: projectData.description || null,
@@ -68,6 +69,15 @@ export const createProject = async (userId, projectData) => {
     },
     include: projectInclude
   });
+
+  await createActivityLog({
+    userId,
+    projectId: project.id,
+    action: "PROJECT_CREATED",
+    description: `Project ${project.title} was created.`
+  });
+
+  return project;
 };
 
 export const getProjects = async (user) => {
@@ -117,7 +127,7 @@ export const getProjectById = async (projectId, user) => {
   return project;
 };
 
-export const updateProject = async (projectId, projectData) => {
+export const updateProject = async (projectId, projectData, userId = null) => {
   await ensureProjectExists(projectId);
 
   const data = {};
@@ -146,17 +156,33 @@ export const updateProject = async (projectId, projectData) => {
     data.dueDate = parseDate(projectData.dueDate);
   }
 
-  return prisma.project.update({
+  const project = await prisma.project.update({
     where: {
       id: projectId
     },
     data,
     include: projectInclude
   });
+
+  await createActivityLog({
+    userId,
+    projectId: project.id,
+    action: "PROJECT_UPDATED",
+    description: `Project ${project.title} was updated.`
+  });
+
+  return project;
 };
 
-export const deleteProject = async (projectId) => {
-  await ensureProjectExists(projectId);
+export const deleteProject = async (projectId, userId = null) => {
+  const project = await ensureProjectExists(projectId);
+
+  await createActivityLog({
+    userId,
+    projectId: project.id,
+    action: "PROJECT_DELETED",
+    description: `Project ${project.title} was deleted.`
+  });
 
   return prisma.project.delete({
     where: {
@@ -171,7 +197,8 @@ const ensureProjectExists = async (projectId) => {
       id: projectId
     },
     select: {
-      id: true
+      id: true,
+      title: true
     }
   });
 

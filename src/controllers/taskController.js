@@ -99,7 +99,7 @@ export const updateTaskHandler = async (req, res, next) => {
 export const deleteTaskHandler = async (req, res, next) => {
   try {
     const taskId = parseTaskId(req.params.id);
-    await deleteTask(taskId);
+    await deleteTask(taskId, req.user.id);
 
     return successResponse(res, 200, "Task deleted successfully");
   } catch (error) {

@@ -2,7 +2,9 @@ import express from "express";
 import cors from "cors";
 import morgan from "morgan";
 import dotenv from "dotenv";
+import activityLogRoutes from "./routes/activityLogRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
+import commentRoutes from "./routes/commentRoutes.js";
 import healthRoutes from "./routes/healthRoutes.js";
 import projectRoutes from "./routes/projectRoutes.js";
 import taskRoutes from "./routes/taskRoutes.js";
@@ -44,6 +46,8 @@ app.use("/api/health", healthRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/tasks", taskRoutes);
+app.use("/api", commentRoutes);
+app.use("/api/activity-logs", activityLogRoutes);
 
 app.use(notFoundHandler);
 app.use(errorMiddleware);

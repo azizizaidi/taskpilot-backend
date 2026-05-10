@@ -131,14 +131,18 @@ export const updateProjectHandler = async (req, res, next) => {
       return errorResponse(res, 400, "Validation failed", errors);
     }
 
-    const project = await updateProject(projectId, {
-      title: trimOptionalText(body.title),
-      description: trimOptionalText(body.description),
-      status: body.status,
-      priority: body.priority,
-      startDate: body.startDate,
-      dueDate: body.dueDate
-    });
+    const project = await updateProject(
+      projectId,
+      {
+        title: trimOptionalText(body.title),
+        description: trimOptionalText(body.description),
+        status: body.status,
+        priority: body.priority,
+        startDate: body.startDate,
+        dueDate: body.dueDate
+      },
+      req.user.id
+    );
 
     return successResponse(res, 200, "Project updated successfully", {
       project
@@ -151,7 +155,7 @@ export const updateProjectHandler = async (req, res, next) => {
 export const deleteProjectHandler = async (req, res, next) => {
   try {
     const projectId = parseProjectId(req.params.id);
-    await deleteProject(projectId);
+    await deleteProject(projectId, req.user.id);
 
     return successResponse(res, 200, "Project deleted successfully");
   } catch (error) {
