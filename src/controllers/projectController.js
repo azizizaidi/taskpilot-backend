@@ -98,11 +98,9 @@ export const createProjectHandler = async (req, res, next) => {
 
 export const getProjectsHandler = async (req, res, next) => {
   try {
-    const projects = await getProjects(req.user);
+    const result = await getProjects(req.user, req.query);
 
-    return successResponse(res, 200, "Projects fetched successfully", {
-      projects
-    });
+    return successResponse(res, 200, "Projects retrieved successfully", result);
   } catch (error) {
     next(error);
   }

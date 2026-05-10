@@ -1,5 +1,22 @@
 import prisma from "../utils/prisma.js";
+import {
+  getPagination,
+  getPaginationMeta,
+  parseOptionalPositiveInt
+} from "../utils/pagination.js";
 import { createActivityLog } from "./activityLogService.js";
+
+const taskStatuses = ["TODO", "IN_PROGRESS", "REVIEW", "DONE"];
+const priorities = ["LOW", "MEDIUM", "HIGH"];
+const taskSortFields = [
+  "createdAt",
+  "updatedAt",
+  "dueDate",
+  "title",
+  "priority",
+  "status"
+];
+const sortOrders = ["asc", "desc"];
 
 const safeUserSelect = {
   id: true,
@@ -148,16 +165,115 @@ export const createTask = async (userId, taskData) => {
   return task;
 };
 
-export const getTasks = async (user) => {
-  const where = user.role === "ADMIN" ? {} : getMemberTaskWhere(user.id);
+export const getTasks = async (user, query = {}) => {
+  const { page, limit, skip } = getPagination(query);
+  const search = typeof query.search === "string" ? query.search.trim() : "";
+  const sortBy = query.sortBy || "createdAt";
+  const sortOrder = query.sortOrder || "desc";
+  const projectId = parseOptionalPositiveInt(query.projectId, "Project id");
+  const assignedToId = parseOptionalPositiveInt(
+    query.assignedToId,
+    "Assigned user id"
+  );
 
-  return prisma.task.findMany({
-    where,
-    include: taskInclude,
-    orderBy: {
-      createdAt: "desc"
-    }
-  });
+  if (query.status && !taskStatuses.includes(query.status)) {
+    const error = new Error("Invalid task status");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (query.priority && !priorities.includes(query.priority)) {
+    const error = new Error("Invalid task priority");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (!taskSortFields.includes(sortBy)) {
+    const error = new Error("Invalid task sort field");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (!sortOrders.includes(sortOrder)) {
+    const error = new Error("Invalid sort order");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const accessWhere = user.role === "ADMIN" ? {} : getMemberTaskWhere(user.id);
+  const filters = [];
+
+  if (search) {
+    filters.push({
+      OR: [
+        {
+          title: {
+            contains: search
+          }
+        },
+        {
+          description: {
+            contains: search
+          }
+        }
+      ]
+    });
+  }
+
+  if (query.status) {
+    filters.push({
+      status: query.status
+    });
+  }
+
+  if (query.priority) {
+    filters.push({
+      priority: query.priority
+    });
+  }
+
+  if (projectId !== undefined) {
+    filters.push({
+      projectId
+    });
+  }
+
+  if (assignedToId !== undefined) {
+    filters.push({
+      assignedToId
+    });
+  }
+
+  const where =
+    filters.length > 0
+      ? {
+          AND: [accessWhere, ...filters]
+        }
+      : accessWhere;
+
+  const [items, totalItems] = await Promise.all([
+    prisma.task.findMany({
+      where,
+      include: taskInclude,
+      orderBy: {
+        [sortBy]: sortOrder
+      },
+      skip,
+      take: limit
+    }),
+    prisma.task.count({
+      where
+    })
+  ]);
+
+  return {
+    items,
+    pagination: getPaginationMeta({
+      page,
+      limit,
+      totalItems
+    })
+  };
 };
 
 export const getTaskById = async (taskId, user) => {

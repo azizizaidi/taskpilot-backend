@@ -49,11 +49,9 @@ export const createTaskHandler = async (req, res, next) => {
 
 export const getTasksHandler = async (req, res, next) => {
   try {
-    const tasks = await getTasks(req.user);
+    const result = await getTasks(req.user, req.query);
 
-    return successResponse(res, 200, "Tasks fetched successfully", {
-      tasks
-    });
+    return successResponse(res, 200, "Tasks retrieved successfully", result);
   } catch (error) {
     next(error);
   }
