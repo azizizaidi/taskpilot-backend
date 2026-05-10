@@ -5,7 +5,8 @@ export const getActivityLogsHandler = async (req, res, next) => {
   try {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
-    const { logs, meta } = await getActivityLogs({ page, limit });
+    const { dateFrom, dateTo } = req.query;
+    const { logs, meta } = await getActivityLogs({ page, limit, dateFrom, dateTo });
 
     return successResponse(
       res,

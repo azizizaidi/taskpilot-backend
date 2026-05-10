@@ -47,13 +47,25 @@ export const createActivityLog = async ({
   });
 };
 
-export const getActivityLogs = async ({ page = 1, limit = 10 }) => {
+export const getActivityLogs = async ({ page = 1, limit = 10, dateFrom, dateTo }) => {
   const safePage = Number.isInteger(page) && page > 0 ? page : 1;
   const safeLimit = Number.isInteger(limit) && limit > 0 ? Math.min(limit, 50) : 10;
   const skip = (safePage - 1) * safeLimit;
 
+  const where = {};
+  if (dateFrom || dateTo) {
+    where.createdAt = {};
+    if (dateFrom) where.createdAt.gte = new Date(dateFrom);
+    if (dateTo) {
+      const end = new Date(dateTo);
+      end.setHours(23, 59, 59, 999);
+      where.createdAt.lte = end;
+    }
+  }
+
   const [logs, total] = await Promise.all([
     prisma.activityLog.findMany({
+      where,
       skip,
       take: safeLimit,
       include: activityLogInclude,
@@ -61,7 +73,7 @@ export const getActivityLogs = async ({ page = 1, limit = 10 }) => {
         createdAt: "desc"
       }
     }),
-    prisma.activityLog.count()
+    prisma.activityLog.count({ where })
   ]);
 
   const totalPages = Math.ceil(total / safeLimit) || 1;
