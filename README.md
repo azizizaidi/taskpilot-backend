@@ -76,7 +76,7 @@ The `DATABASE_URL` in `.env` should match this user/password/database.
 ```bash
 npm install
 npx prisma generate          # generate the Prisma client
-npx prisma migrate dev       # apply migrations and create tables
+npx prisma migrate dev --name init    # apply migrations and create tables (use --name init on first run)
 npx prisma db seed           # populate demo users, projects, tasks
 npx prisma studio            # browse the database in a local web UI
 ```
@@ -178,9 +178,9 @@ Notes:
 
 ## Project Links
 
-- **Backend repository:** _add GitHub URL here_
-- **Frontend repository:** _add GitHub URL here_
-- **Deployed app:** _add deployment URL here (e.g., Railway, Render, Fly.io)_
+- **Backend Repository:** TODO - add GitHub backend repository URL
+- **Frontend Repository:** TODO - add GitHub frontend repository URL
+- **Deployed App:** Not deployed / Local demo only
 
 ## Notes
 
